@@ -21,7 +21,10 @@ class Listener {
 
 	_initSocket(){
 		this.status = Status.IDLE
-		this.socket = io(this.endpoint, {
+		this.socket = io({
+			query: {
+				path: this.endpoint
+			},
 			autoConnect: false
 		})
 		this.socket.on('connect', () => this._setStatus(Status.CONNECTED))
@@ -32,6 +35,7 @@ class Listener {
 		this.socket.on('disconnect', (reason) => this._setStatus(Status.DISCONNECTED, {reason: reason}))
 
 		this.socket.on('update', payload => this.actions.forEach(callback => callback(payload)))
+		this.socket.on('delete', () => this.actions.forEach(callback => callback(null)))
 	}
 
 	start(){
@@ -65,8 +69,6 @@ class Listener {
 			this.onStatusChange(this.status)
 	}
 }
-
-//TODO: Manage multiple listeners on same endpoint
 
 const _listen = function (endpoint, action, onStatusChange) {
 	if (typeof endpoint !== "string") throw new TypeError("Endpoint must be a string")
