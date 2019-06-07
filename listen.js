@@ -25,6 +25,8 @@ class Listener {
 			query: {
 				path: this.endpoint
 			},
+			pingInterval: 1000,
+			pingTimeout: 5000,
 			autoConnect: false
 		})
 		this.socket.on('connect', () => this._setStatus(Status.CONNECTED))
