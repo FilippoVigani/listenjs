@@ -2,18 +2,18 @@ const Observer = require('./observer')
 const Backoff = require('backo')
 
 class Manager {
-
 	constructor(opts) {
 		this.opts = opts
 		this.observers = []
 		this.clientId = null
-		this.status = Manager.Status.IDLE
+		this._status = Manager.Status.IDLE
 		//TODO: Make backoff params customizable
 		this.backoff = new Backoff({
 			min: 1000,
 			max: 5000,
 			jitter: 0.5
 		})
+		this.onStatusChange = () => {}
 	}
 
 	get socket() {
@@ -30,6 +30,7 @@ class Manager {
 	}
 
 	set status(status){
+		this.onStatusChange(status)
 		console.log(`Manager ${this.opts.href} status: ${status}`)
 		this._status = status
 	}
