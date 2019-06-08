@@ -1,6 +1,6 @@
 {
   "name": "@filippovigani/listenjs",
-  "version": "0.1.2",
+  "version": "0.2.11",
   "description": "Listen on REST endpoints for resource changes",
   "license": "GPLv3",
   "repository": "VeegaP/listenjs",
@@ -14,6 +14,7 @@
     "websocket"
   ],
   "dependencies": {
-    "socket.io-client": "^2.2.0"
+    "backo": "^1.1.0",
+    "parseuri": "^0.0.5"
   }
 }
