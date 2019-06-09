@@ -4,14 +4,16 @@ const Backoff = require('backo')
 class Manager {
 	constructor(opts) {
 		this.opts = opts
+		this.destination = opts.id
+		this.pingInterval = opts.pingInterval || null
+		this.pingTimeout = opts.pingTimeout || null
 		this.observers = []
 		this.clientId = null
 		this._status = Manager.Status.IDLE
-		//TODO: Make backoff params customizable
 		this.backoff = new Backoff({
-			min: 1000,
-			max: 5000,
-			jitter: 0.5
+			min: opts.reconnectionDelay || 1000,
+			max: opts.reconnectionMaxDelay || 5000,
+			jitter: opts.reconnectionJitter || 0.5
 		})
 		this.onStatusChange = () => {}
 	}
@@ -19,7 +21,7 @@ class Manager {
 	get socket() {
 		if (!this._socket) {
 			this.status = Manager.Status.CONNECTING
-			this._socket = new WebSocket(this.opts.id)
+			this._socket = new WebSocket(this.destination)
 			this._setupListeners()
 		}
 		return this._socket
@@ -31,7 +33,7 @@ class Manager {
 
 	set status(status){
 		this.onStatusChange(status)
-		console.log(`Manager ${this.opts.href} status: ${status}`)
+		console.log(`Manager ${this.destination} status: ${status}`)
 		this._status = status
 	}
 
@@ -44,7 +46,9 @@ class Manager {
 			this.backoff.reset()
 			this.status = Manager.Status.HANDSHAKING
 			const handshake = {
-				action: Manager.Event.HANDSHAKE
+				action: Manager.Event.HANDSHAKE,
+				pingInterval: this.pingInterval,
+				pingTimeout: this.pingTimeout
 			}
 			this._sendPayload(handshake)
 		})
@@ -57,32 +61,21 @@ class Manager {
 			console.log(`WebSocket disconnected with error`)
 			console.log(event)
 			this.status = Manager.Status.ERROR
-			this.socket = null
-			if (this.observers.length > 0){
-				const delay = this.backoff.duration()
-				this.status = Manager.Status.RECONNECTING
-				setTimeout(() => {
-					this.socket
-				}, delay)
-			}
+			this._handleShutdown()
 		})
 		this.socket.addEventListener('close', event => {
 			console.log(`WebSocket disconnected gracefully`)
 			console.log(event)
 			this.status = Manager.Status.DISCONNECTED
-			this.socket = null
-			if (this.observers.length > 0){
-				const delay = this.backoff.duration()
-				this.status = Manager.Status.RECONNECTING
-				setTimeout(() => {
-					this.socket
-				}, delay)
-			}
+			this._handleShutdown()
 		})
 	}
 
 	_handleMessage(payload) {
 		if (payload.action === Manager.Event.HANDSHAKE_ACK) {
+			this.pingInterval = payload.pingInterval
+			this.pingTimeout = payload.pingTimeout
+			this._setPing()
 			if (payload.clientId !== this.clientId) {
 				this.clientId = payload.clientId
 				this.status = Manager.Status.CONNECTED
@@ -126,15 +119,53 @@ class Manager {
 				observer.notify(payload.body)
 			}
 		}
+
+		if (payload.action === Manager.Event.HEARTBEAT_ACK) {
+			clearTimeout(this.pingTimeoutTimer)
+			this._setPing()
+		}
+	}
+
+	_handleShutdown(){
+		this.socket = null
+		clearTimeout(this.pingIntervalTimer)
+		clearTimeout(this.pingTimeoutTimer)
+		if (this.observers.length > 0){
+			const delay = this.backoff.duration()
+			this.status = Manager.Status.RECONNECTING
+			setTimeout(() => {
+				this.socket
+			}, delay)
+		}
+	}
+
+	_setPongTimeout(){
+		clearTimeout(this.pingTimeoutTimer)
+		this.pingTimeoutTimer = setTimeout(() => {
+			this.socket.close()
+		}, this.pingTimeout)
+	}
+
+	_setPing(){
+		clearTimeout(this.pingIntervalTimer)
+		this.pingIntervalTimer = setTimeout(() => {
+			if (this.status === Manager.Status.CONNECTED){
+				this._sendPayload({
+					action: Manager.Event.HEARTBEAT
+				})
+				this._setPongTimeout()
+			}
+		}, this.pingInterval)
 	}
 
 	_sendPayload(payload){
-		console.log("Sending payload")
-		console.log(payload)
-		this.socket.send(JSON.stringify({
+		const payloadWithId = {
 			...payload,
 			clientId: this.clientId
-		}))
+		}
+		console.log("Sending payload")
+		console.log(payloadWithId)
+		this.socket.send(JSON.stringify(payloadWithId))
 	}
 
 	provideObserver(path) {
