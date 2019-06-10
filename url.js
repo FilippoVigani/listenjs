@@ -62,6 +62,8 @@ function url (uri, loc) {
 	obj.id = obj.protocol + '://' + host + ':' + obj.port
 	// define href
 	obj.href = obj.protocol + '://' + host + (loc && loc.port === obj.port ? '' : (':' + obj.port))
+	//define ws id
+	obj.wsid = 'ws://' + host + ':' + obj.port
 
 	return obj
 }

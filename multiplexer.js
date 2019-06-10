@@ -19,9 +19,7 @@ class Multiplexer {
 
 		const parsed = url(opts.uri)
 		opts.source = parsed.source
-		opts.id = parsed.id
-		opts.href = parsed.href
-
+		opts.id = parsed.wsid
 
 		if (!this.cache[opts.id]) {
 			console.log(`New manager for ${opts.id}`)
