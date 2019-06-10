@@ -160,13 +160,10 @@ class Manager {
 	}
 
 	_sendPayload(payload){
-		const payloadWithId = {
-			...payload,
-			clientId: this.clientId
-		}
+		payload.clientId = this.clientId
 		console.log("Sending payload")
-		console.log(payloadWithId)
-		this.socket.send(JSON.stringify(payloadWithId))
+		console.log(payload)
+		this.socket.send(JSON.stringify(payload))
 	}
 
 	provideObserver(path) {
