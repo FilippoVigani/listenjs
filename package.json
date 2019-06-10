@@ -1,6 +1,6 @@
 {
   "name": "@filippovigani/listenjs",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Listen on REST endpoints for resource changes",
   "license": "GPLv3",
   "repository": "VeegaP/listenjs",

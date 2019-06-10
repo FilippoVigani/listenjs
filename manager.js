@@ -1,5 +1,6 @@
 const Observer = require('./observer')
 const Backoff = require('backo')
+const url = require('./url')
 
 class Manager {
 	constructor(opts) {
@@ -191,7 +192,8 @@ class Manager {
 	}
 
 	stopListening(path){
-		const index = this.observers.findIndex(obs => obs.path === path)
+		const relPath = url(path).path
+		const index = this.observers.findIndex(obs => obs.path === relPath)
 		if (index >= 0){
 			const observer = this.observers[index]
 			observer.clearCallbacks()
@@ -212,7 +214,8 @@ class Manager {
 	}
 
 	listen(path, callback){
-		const observer = this.provideObserver(path)
+		const relPath = url(path).path
+		const observer = this.provideObserver(relPath)
 
 		observer.addCallback(callback)
 	}
